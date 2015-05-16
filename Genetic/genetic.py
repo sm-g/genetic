@@ -6,6 +6,8 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+# noinspection PyUnresolvedReferences
+from mpl_toolkits.mplot3d import axes3d, Axes3D
 from enum import IntEnum
 
 from axiacore_parser import Parser
