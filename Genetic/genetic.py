@@ -59,21 +59,127 @@ class Crossovers:
 
     @staticmethod
     def blx_crossover(t1, t2, alpha):
-        ch1 = (Genetic.blx_gene(t1[0], t2[0], alpha), Genetic.blx_gene(t1[1], t2[1], alpha))
+        ch1 = (Crossovers.blx_gene(t1[0], t2[0], alpha), Crossovers.blx_gene(t1[1], t2[1], alpha))
         return [ch1]
 
+    @staticmethod
+    def blx_gene(g1, g2, alpha):
+        cmin = min(g1, g2)
+        cmax = max(g1, g2)
+        length = cmax - cmin
+        return uniform(cmin - length * alpha, cmax + length * alpha)
 
-class Genetic:
-    class SamplingType(IntEnum):
+
+class Sampling:
+    fncs = {}
+
+    def __init__(self):
+        Sampling.fncs = {
+            Sampling.Type.rank: self.rank_sampling,
+            Sampling.Type.tournament: self.tournament_sampling,
+            Sampling.Type.stochastic: self.stochastic_sampling,
+            Sampling.Type.remainderStochastic: self.remainder_stochastic_sampling}
+
+    class Type(IntEnum):
         stochastic = 0
         remainderStochastic = 1
         rank = 2
         tournament = 3
 
+    def sample(type, fit, e, population):
+        return Sampling.fncs[type](fit, e, population)
+
+    @staticmethod
+    def rank_sampling(fit, extr, population):
+        """Ранковый отбор
+        Для каждой особи вероятность попасть в промежуточную популяцию
+        пропорциональна ее порядковому номеру в отсортированном списке
+        приспособленности популяции.
+        """
+
+        rights = []  # правые границы отрезков, заполняющих единичный отрезок рулетки
+        # для популяции из 3 особей длины отрезков: 3/6, 2/6, 1/6, границы: 1/6, 1/2, 1
+        ss = 0
+        size = len(population) * (len(population) + 1) / 2.0
+        for i in range(len(population)):
+            ss += (i + 1) / size
+            rights.append(ss)
+
+        newpop = []
+        for t in Genetic.sorted_normed_fitness(fit, extr, population):
+            r = random()
+            for i in range(len(population)):
+                if r < rights[i]:
+                    newpop.append(population[t[0]])
+                    break
+        return newpop
+
+    @staticmethod
+    def remainder_stochastic_sampling(fit, e, population):
+        """Пропорциональный отбор
+        Для каждой особи вычисляется отношение ее приспособленности к средней
+        приспособленности популяции. Целая часть этого отношения указывает,
+        сколько раз нужно записать особь в промежуточную популяцию,
+        а дробная — это ее вероятность попасть туда еще раз.
+        """
+        score = Genetic.normalize_fitness(fit(population), e)
+        newpop = []
+        for i, t in enumerate(population):
+            r = score[i] * len(population)
+            newpop.extend([t] * math.trunc(r))
+            if random() < r - math.trunc(r):
+                newpop.append(t)
+        return newpop
+
+    @staticmethod
+    def stochastic_sampling(fit, e, population):
+        """Пропорциональный отбор 2
+        Особи располагаются на колесе рулетки, так что размер сектора каждой особи
+        пропорционален ее приспособленности. Изначально промежуточная популяция пуста.
+
+        N раз запуская рулетку, выберем требуемое количество особей для записи
+        в промежуточную популяцию. Ни одна выбранная особь не удаляется с рулетки.
+        """
+        score = Genetic.normalize_fitness(fit(population), e)
+
+        rights = []  # правые границы отрезков, заполняющих единичный отрезок рулетки
+        for i in range(len(population)):
+            rights.append(sum(score[:i + 1]))
+        newpop = []
+        for z in range(len(population)):
+            r = random()
+            for i in range(len(population)):
+                if r < rights[i]:
+                    newpop.append(population[i])
+                    break
+
+        return newpop
+
+    @staticmethod
+    def tournament_sampling(fit, e, population):
+        """Турнирный отбор
+        Из популяции случайным образом выбирается t особей, и лучшая из них
+        помещается в промежуточную популяцию. Этот процесс повторяется N раз,
+        пока промежуточная популяция не будет заполнена.
+        """
+        newpop = []
+        r = None
+        for i in range(len(population)):
+            while True:
+                r = sample(population, 2)  # выбираем 2 разных особи
+                if r[0] != r[1]:
+                    break
+
+            newpop.append(Genetic.rate_population(fit, e, r, verbose=False))
+
+        return newpop
+
+
+class Genetic:
     parser = Parser()
 
     def __init__(self, f_xy, extremum='max', mp=0.02, cp=0.1, size=30,
-                 search_field=(-2, -2, 2, 2), sampling=SamplingType.stochastic, elite=0,
+                 search_field=(-2, -2, 2, 2), sampling=Sampling.Type.stochastic, elite=0,
                  crossover=Crossovers.Type.simple, max_generations=1000, alpha=0.5):
         """
         :param f_xy:
@@ -98,12 +204,6 @@ class Genetic:
         self.elite = elite
         self.crossover_type = crossover
         self.alpha = alpha
-
-        self.samplingDict = {
-            Genetic.SamplingType.rank: self.rank_sampling,
-            Genetic.SamplingType.tournament: self.tournament_sampling,
-            Genetic.SamplingType.stochastic: self.stochastic_sampling,
-            Genetic.SamplingType.remainderStochastic: self.remainder_stochastic_sampling}
 
         self.crossovers = 0
         self.mutations = 0
@@ -162,13 +262,6 @@ class Genetic:
             t = (t[0], t[1] + uniform(-dy, dy))
         return t
 
-    @staticmethod
-    def blx_gene(g1, g2, alpha):
-        cmin = min(g1, g2)
-        cmax = max(g1, g2)
-        length = cmax - cmin
-        return uniform(cmin - length * alpha, cmax + length * alpha)
-
     def crossover(self, t1, t2):
         """Cкрещивание двух особей с некоторой вероятностью"""
 
@@ -180,13 +273,15 @@ class Genetic:
         return t1, t2
 
     def f(self, x, y):
-        """Заданная функция, для которой ищется экстремум"""
+        """Вычисляет функцию приспособленности
+        :rtype : float
+        """
         try:
             return self.parsed_f.evaluate({'x': x, 'y': y})
         except Exception as e:
             print 'ошибка при вычислении функции: ' + str(e)
 
-    def fitness(self, population):
+    def fit_population(self, population):
         """Приспособленность популяции.
         Возвращает массив значений целевой функции для каждой особи.
         :type population: list
@@ -194,16 +289,13 @@ class Genetic:
         """
         return [self.f(ind[0], ind[1]) for ind in population]
 
-    def fitness_normed(self, population):
-        """Нормированная приспособленность особей популяции"""
-        fit = self.fitness(population)
-        return Genetic.normalize_fitness(fit, self.extremum)
-
-    def sorted_normed_fitness(self, population):
+    @staticmethod
+    def sorted_normed_fitness(f, e, population):
         """Возвращает пары (номер особи в популяции, норма приспособленности),
         отсортированные по норме.
         """
-        fit = self.fitness_normed(population)
+
+        fit = Genetic.normalize_fitness(f(population), e)
         numbered_fit = [(i, x) for i, x in enumerate(fit)]
         numbered_fit.sort(key=lambda t: t[1])
         numbered_fit.reverse()
@@ -235,12 +327,13 @@ class Genetic:
         print '\n'.join(['{}:\t{: .3f} {: .3f}\t{: .3f}'.format(i, t[0][0], t[0][1], t[1]) for i, t in
                          enumerate(zip(population, score))])
 
-    def rate_population(self, population, verbose=True):
+    @staticmethod
+    def rate_population(fit, ext, population, verbose=True):
         """Оценка качества популяции.
         Возвращает особь с максимальной приспособленностью.
         """
-        fit = self.fitness(population)
-        score = Genetic.normalize_fitness(fit, self.extremum)
+        fitness = fit(population)
+        score = Genetic.normalize_fitness(fitness, ext)
         max_score = max(score)
         i = score.index(max_score)
         if verbose:
@@ -249,91 +342,8 @@ class Genetic:
                   u"{}:\t{: .3f} {: .3f}\t{:.3f}\n" \
                   u"F(x,y) = {: .3f}".format(u' лучшая особь ', i,
                                              population[i][0], population[i][1],
-                                             max_score, fit[i])
+                                             max_score, fitness[i])
         return population[i][0], population[i][1]
-
-    # отборы
-
-    def remainder_stochastic_sampling(self, population):
-        """Пропорциональный отбор
-        Для каждой особи вычисляется отношение ее приспособленности к средней
-        приспособленности популяции. Целая часть этого отношения указывает,
-        сколько раз нужно записать особь в промежуточную популяцию,
-        а дробная — это ее вероятность попасть туда еще раз.
-        """
-        score = self.fitness_normed(population)
-        newpop = []
-        for i, t in enumerate(population):
-            r = score[i] * len(population)
-            newpop.extend([t] * math.trunc(r))
-            if random() < r - math.trunc(r):
-                newpop.append(t)
-        return newpop
-
-    def stochastic_sampling(self, population):
-        """Пропорциональный отбор 2
-        Особи располагаются на колесе рулетки, так что размер сектора каждой особи
-        пропорционален ее приспособленности. Изначально промежуточная популяция пуста.
-
-        N раз запуская рулетку, выберем требуемое количество особей для записи
-        в промежуточную популяцию. Ни одна выбранная особь не удаляется с рулетки.
-        """
-        score = self.fitness_normed(population)
-
-        rights = []  # правые границы отрезков, заполняющих единичный отрезок рулетки
-        for i in range(len(population)):
-            rights.append(sum(score[:i + 1]))
-        newpop = []
-        for z in range(len(population)):
-            r = random()
-            for i in range(len(population)):
-                if r < rights[i]:
-                    newpop.append(population[i])
-                    break
-
-        return newpop
-
-    def rank_sampling(self, population):
-        """Ранковый отбор
-        Для каждой особи вероятность попасть в промежуточную популяцию
-        пропорциональна ее порядковому номеру в отсортированном списке
-        приспособленности популяции.
-        """
-
-        rights = []  # правые границы отрезков, заполняющих единичный отрезок рулетки
-        # для популяции из 3 особей длины отрезков: 3/6, 2/6, 1/6, границы: 1/6, 1/2, 1
-        ss = 0
-        size = len(population) * (len(population) + 1) / 2.0
-        for i in range(len(population)):
-            ss += (i + 1) / size
-            rights.append(ss)
-
-        newpop = []
-        for t in self.sorted_normed_fitness(population):
-            r = random()
-            for i in range(len(population)):
-                if r < rights[i]:
-                    newpop.append(population[t[0]])
-                    break
-        return newpop
-
-    def tournament_sampling(self, population):
-        """Турнирный отбор
-        Из популяции случайным образом выбирается t особей, и лучшая из них
-        помещается в промежуточную популяцию. Этот процесс повторяется N раз,
-        пока промежуточная популяция не будет заполнена.
-        """
-        newpop = []
-        r = None
-        for i in range(len(population)):
-            while True:
-                r = sample(population, 2)  # выбираем 2 разных особи
-                if r[0] != r[1]:
-                    break
-
-            newpop.append(self.rate_population(r, verbose=False))
-
-        return newpop
 
     def to_continue(self, generation, best, best_prev):
         """Условие продолжения поиска решения.
@@ -359,7 +369,7 @@ class Genetic:
         """
         if n <= 0:
             return []
-        return [population[x[0]] for x in self.sorted_normed_fitness(population)][:n]
+        return [population[x[0]] for x in Genetic.sorted_normed_fitness(self.f, self.extremum, population)][:n]
 
     @staticmethod
     def convergence(population):
@@ -374,7 +384,7 @@ class Genetic:
         elite = self.select_best(population, self.elite)
 
         # промежуточная популяция после отбора - те, кто будет размножаться
-        population = self.samplingDict[self.sampling](population)
+        population = Sampling.sample(self.sampling, lambda x: self.fit_population(x), self.extremum, population)
 
         if Genetic.convergence(population):
             raise Exception('convergence')
@@ -423,7 +433,7 @@ class Genetic:
 
         generation = 0
         population = Genetic.generate(self.size, search_field=self.search_field)
-        best_before = best_after = self.rate_population(population, print_rate)
+        best_before = best_after = Genetic.rate_population(self.fit_population, self.extremum, population, print_rate)
         self.same_best_counter = 0
         history = [population]
 
@@ -442,7 +452,7 @@ class Genetic:
 
             history.append(population)
 
-            best_after = self.rate_population(population, print_rate)
+            best_after = Genetic.rate_population(self.f, self.extremum, population, print_rate)
 
             if print_stats:
                 print u"{:-^30}\nразмер\t{}\n" \
@@ -468,11 +478,11 @@ class Genetic:
         elites = []
 
         for population in history:
-            elites.append(self.rate_population(population, verbose=False))
+            elites.append(Genetic.rate_population(lambda x: self.fit_population(x), self.extremum, population, verbose=False))
 
         if verbose:
             print '\n\n' + u"{:*^30}".format(u' лучшие особи ')
-            Genetic.print_with_score(elites, self.fitness(elites))
+            Genetic.print_with_score(elites, self.fit_population(elites))
 
         return elites
 
@@ -480,7 +490,7 @@ class Genetic:
         """ Возвращает результат - лучшую особь - в виде ((x,y),score)
         :param elites: лучшие особи в истории популяций
         """
-        return elites[-1], self.fitness([elites[-1]])[0]
+        return elites[-1], self.fit_population([elites[-1]])[0]
 
     # def draw_plot(self, history):
     #     fig = plt.figure()
@@ -509,14 +519,14 @@ class Genetic:
         for i, population in enumerate(history):
             xs = [point[0] for point in population]
             ys = [point[1] for point in population]
-            zs = self.fitness(population)
+            zs = self.fit_population(population)
 
             color = next(colors)
             self.ax.plot(xs, ys, zs, 'o', c=color, label=i, markersize=3, mew=0)
 
             # выделяем элиту в каждой популяции
             if len(history) == len(elites):
-                self.ax.plot([elites[i][0]], [elites[i][1]], self.fitness([elites[i]]), 'x', c=color, markersize=20)
+                self.ax.plot([elites[i][0]], [elites[i][1]], self.fit_population([elites[i]]), 'x', c=color, markersize=20)
 
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), numpoints=1, fontsize=8)
         plt.show()
@@ -531,11 +541,11 @@ class GeneticTester:
         f = 'x*x+y*y'
         g = Genetic(f, 'min', size=10)
         population = [(0.2, 0.5), (-0.2, 1), (0.2, 0.2), (-1, 0.3), (0.4, 0.8)]
-        fit = g.fitness(population)
+        fit = g.fit_population(population)
         print population
-        Genetic.print_with_score(population, g.fitness(population))
+        Genetic.print_with_score(population, g.fit_population(population))
         print 'avg fitness = ' + str(sum(fit) / float(len(fit)))
-        print g.stochastic_sampling(population)
+        print Sampling.stochastic_sampling(g.f, g.extremum, population)
 
     def var_mp(self):
         elites = []
