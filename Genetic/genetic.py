@@ -31,16 +31,17 @@ class Genetic:
                  search_field=(-2, -2, 2, 2), sampling=SamplingType.stochastic, elite=0,
                  crossover=CrossoverType.simple, max_generations=1000, alpha=0.5):
         """
-        extremum - тип экстремума
-        mp - вероятность мутации
-        cp - вероятность кроссовера
-        size - размер популяции
-        search_field - поле поиска (minx, miny, maxx, maxy)
-        sampling - тип отбора
-        elite - кол-во лучших, переходящих в новое поколение
-        crossover - тип размножения
-        max_generations - максимальное количество поколений
-        alpha - параметр для BLX кроссорвера
+        :param f_xy:
+        :param extremum: тип экстремума
+        :param mp: вероятность мутации
+        :param cp: вероятность кроссовера
+        :param size: размер популяции
+        :param search_field: поле поиска (minx, miny, maxx, maxy)
+        :param sampling: тип отбора
+        :param elite: кол-во лучших, переходящих в новое поколение
+        :param crossover: тип размножения
+        :param max_generations: максимальное количество поколений
+        :param alpha: параметр для BLX кроссорвера
         """
         self.extremum = extremum
         self.mutation_p = mp
@@ -73,20 +74,21 @@ class Genetic:
         self.same_best_counter = 0
 
     @staticmethod
-    def generate(n, xmin=-0.5, ymin=-0.5, xsize=1, ysize=1, **kwargs):
+    def generate(n, search_field, xmin=-0.5, ymin=-0.5, xsize=1, ysize=1):
         """Генерирует случайную популяцию
-        n - количество особей в популяции
-        xmin, ymin- минимальные значения для x и y
-        xsize, ysize - размеры поля, в котором генерируются координаты x и y
-        kwargs
-            Если передан search_field - поле поиска (minx, miny, maxx, maxy),
-            то используется для рассчета xmin, ymin, xsize, ysize
+
+        :param n: количество особей в популяции
+        :param search_field: поле поиска (minx, miny, maxx, maxy), используется для рассчета xmin, ymin, xsize, ysize
+        :param xmin: минимальные значения для x и y
+        :param ymin: минимальные значения для x и y
+        :param xsize: размеры поля, в котором генерируются координаты x и y
+        :param ysize: размеры поля, в котором генерируются координаты x и y
         """
-        if kwargs['search_field']:
-            xmin = kwargs['search_field'][0]
-            ymin = kwargs['search_field'][1]
-            xsize = kwargs['search_field'][2] - xmin
-            ysize = kwargs['search_field'][3] - ymin
+        if search_field:
+            xmin = search_field[0]
+            ymin = search_field[1]
+            xsize = search_field[2] - xmin
+            ysize = search_field[3] - ymin
         points = [(random() * xsize + xmin, random() * ysize + ymin) for _ in xrange(n)]
         return points
 
@@ -197,7 +199,11 @@ class Genetic:
 
     @staticmethod
     def normalize_fitness(fitness, extremum):
-        """Нормирует приспособленность от 0 до 1. Сумма приспособленностей особей популяции = 1."""
+        """Нормирует приспособленность от 0 до 1. Сумма приспособленностей особей популяции = 1.
+        :type extremum: str
+        :type fitness: list
+
+        """
 
         if extremum == 'max':
             m = min(fitness)
@@ -283,8 +289,7 @@ class Genetic:
         """
 
         rights = []  # правые границы отрезков, заполняющих единичный отрезок рулетки
-        # для популяции из 3 особей длины отрезков: 3/6, 2/6, 1/6, границы: 1/6, 1/2,
-        # 1
+        # для популяции из 3 особей длины отрезков: 3/6, 2/6, 1/6, границы: 1/6, 1/2, 1
         ss = 0
         size = len(population) * (len(population) + 1) / 2.0
         for i in range(len(population)):
@@ -394,6 +399,7 @@ class Genetic:
 
     def start(self, show_plot=True, print_rate=True, print_stats=True):
         """ Возвращает историю - последовательность популяций
+        :rtype : list
         """
         print "=" * 40
         if self.extremum == 'max':
@@ -464,32 +470,28 @@ class Genetic:
         """
         return elites[-1], self.fitness([elites[-1]])[0]
 
-    def draw_plot(self, history):
-        fig = plt.figure()
-        canvas = None  # FigureCanvas(self, -1, self.figure)
+    # def draw_plot(self, history):
+    #     fig = plt.figure()
+    #     canvas = FigureCanvas(self, -1, self.figure)
+    #
+    #     ax = fig.add_subplot(111, projection='3d')
+    #
+    #     for population in history:
+    #         xs = [point[0] for point in population]
+    #         ys = [point[1] for point in population]
+    #         zs = self.fitness(population)
+    #         ax.scatter(xs, ys, zs, c=np.arange(len(population)))
+    #
+    #     ax.set_xlabel('X')
+    #     ax.set_ylabel('Y')
+    #     ax.set_zlabel('F(x, y)')
+    #
+    #     return canvas
 
         ax = fig.add_subplot(111, projection='3d')
 
-        for population in history:
-            xs = [point[0] for point in population]
-            ys = [point[1] for point in population]
-            zs = self.fitness(population)
-            ax.scatter(xs, ys, zs, c=np.arange(len(population)))
-
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('F(x, y)')
-
-        return canvas
-
-    def show_plot(self, history, *args):
-        """Показывает популяции из истории.
-        *args - список лучших в популяциях для выделения
         """
         colors = iter(cm.rainbow(np.linspace(0, 1, len(history))))
-        with_elites = len(args) > 0 and len(args[0]) == len(history)
-        if with_elites:
-            elites = args[0]
 
         for i, population in enumerate(history):
             xs = [point[0] for point in population]
@@ -499,7 +501,8 @@ class Genetic:
             color = next(colors)
             self.ax.plot(xs, ys, zs, 'o', c=color, label=i, markersize=3, mew=0)
 
-            if with_elites:
+            # выделяем элиту в каждой популяции
+            if len(history) == len(elites):
                 self.ax.plot([elites[i][0]], [elites[i][1]], self.fitness([elites[i]]), 'x', c=color, markersize=20)
 
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), numpoints=1, fontsize=8)
