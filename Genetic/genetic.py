@@ -181,6 +181,8 @@ class Genetic:
     def fitness(self, population):
         """Приспособленность популяции.
         Возвращает массив значений целевой функции для каждой особи.
+        :type population: list
+        :rtype : list
         """
         return [self.f(ind[0], ind[1]) for ind in population]
 
@@ -468,7 +470,7 @@ class Genetic:
 
     def solution(self, elites):
         """ Возвращает результат - лучшую особь - в виде ((x,y),score)
-        elites - лучшие особи в истории популяций
+        :param elites: лучшие особи в истории популяций
         """
         return elites[-1], self.fitness([elites[-1]])[0]
 
@@ -490,7 +492,8 @@ class Genetic:
     #
     #     return canvas
 
-        ax = fig.add_subplot(111, projection='3d')
+    def show_plot(self, history, elites=[]):
+        """Показывает популяции из истории.
 
         """
         colors = iter(cm.rainbow(np.linspace(0, 1, len(history))))
