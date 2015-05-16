@@ -86,11 +86,18 @@ class Sampling:
         rank = 2
         tournament = 3
 
-    def sample(type, fit, e, population):
-        return Sampling.fncs[type](fit, e, population)
+    def sample(type, fit_f, extremum, population):
+        """
+
+        :param fit_f: Функция, возвращающая приспособленность популяции
+        :param extremum: Экстремум
+        :param population:
+        :return:
+        """
+        return Sampling.fncs[type](fit_f, extremum, population)
 
     @staticmethod
-    def rank_sampling(fit, extr, population):
+    def rank_sampling(fit, e, population):
         """Ранковый отбор
         Для каждой особи вероятность попасть в промежуточную популяцию
         пропорциональна ее порядковому номеру в отсортированном списке
@@ -106,7 +113,7 @@ class Sampling:
             rights.append(ss)
 
         newpop = []
-        for t in Genetic.sorted_normed_fitness(fit, extr, population):
+        for t in Genetic.sorted_normed_fitness(fit, e, population):
             r = random()
             for i in range(len(population)):
                 if r < rights[i]:
