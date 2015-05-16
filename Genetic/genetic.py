@@ -529,13 +529,14 @@ class Genetic:
 
 
 class GeneticTester:
+    f = 'x*x+y*y'
+
     def __init__(self, f_xy):
-        self.function = f_xy
+        GeneticTester.f = f_xy
 
     @staticmethod
     def test_stohastic():
-        f = 'x*x+y*y'
-        g = Genetic(f, 'min', size=10)
+        g = Genetic(GeneticTester.f, 'min', size=10)
         population = [(0.2, 0.5), (-0.2, 1), (0.2, 0.2), (-1, 0.3), (0.4, 0.8)]
         fit = g.fit_population(population)
         print population
@@ -543,11 +544,12 @@ class GeneticTester:
         print 'avg fitness = ' + str(sum(fit) / float(len(fit)))
         print Sampling.stochastic_sampling(g.f, g.extremum, population)
 
-    def var_mp(self):
+    @staticmethod
+    def var_mp():
         elites = []
         scores = []
         for p in np.arange(0, 0.02, 0.003):
-            g = Genetic(self.function, mp=p)
+            g = Genetic(GeneticTester.f, mp=p)
             best = g.start(show_plot=False)
             elites.append(best[0])
             scores.append(best[1])
@@ -555,10 +557,11 @@ class GeneticTester:
         print '\n\n' + "{:$^30}".format(' elite ')
         Genetic.print_with_score(elites, scores)
 
-    def many(self, n):
+    @staticmethod
+    def many(n):
         elites = []
         scores = []
-        g = Genetic(self.function)
+        g = Genetic(GeneticTester.f)
         for i in range(n):
             best = g.start(show_plot=False)
             elites.append(best[0])
@@ -569,13 +572,13 @@ class GeneticTester:
 
 
 if __name__ == '__main__':
-    fxy = '(x*x + y*y)'
-    # f = raw_input("Enter function of x and y: ")
+    # fxy = raw_input("Enter function of x and y: ")
+    # tester = GeneticTester(fxy)
+    # GeneticTester.test_stohastic()
+    # GeneticTester.var_mp()
+    # GeneticTester.many(2)
 
-    # tester = GeneticTester(f)
-    # tester.test_stohastic()
-
-    gen = Genetic(fxy, extremum='min')
+    gen = Genetic('x*x+y*y', extremum='min')
     ghist = gen.start()
     gelite = gen.elites(ghist)
     gen.show_plot([gelite])
