@@ -424,11 +424,7 @@ class Genetic:
         :rtype : list
         """
         print "=" * 40
-        if self.extremum == 'max':
-            et = u'максимума'
-        else:
-            et = u'минимума'
-        print u'поиск ' + et + u" функции z = " + self.func_xy
+        print u'поиск {0} функции z = {1}'.format(u'максимума' if self.extremum == 'max' else u'минимума', self.func_xy)
         print u"\n{:=^30}".format(u' начальная популяция ')
 
         generation = 0
