@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import wx
-from genetic import Genetic
+from genetic import Genetic, Crossovers
 import sys
 from random import random
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
@@ -156,7 +156,7 @@ class GenUI(wx.Frame):
         # отбор
         self.sampling_rbox = wx.RadioBox(self, choices=[str(x)[str(x).index('.') + 1:] for x in Genetic.SamplingType],
                                          style=wx.RA_VERTICAL, label=u"Отбор")
-        self.crossover_rbox = wx.RadioBox(self, choices=[str(x)[str(x).index('.') + 1:] for x in Genetic.CrossoverType],
+        self.crossover_rbox = wx.RadioBox(self, choices=[str(x)[str(x).index('.') + 1:] for x in Crossovers.Type],
                                           style=wx.RA_VERTICAL, label=u"Кроссовер")
 
         # число поколений

@@ -13,6 +13,56 @@ from enum import IntEnum
 from axiacore_parser import Parser
 
 
+class Crossovers:
+    fncs = {}
+
+    class Type(IntEnum):
+        simple = 0
+        arithmetical = 1
+        geometrical = 2
+        BLXalpha = 3
+        linear = 4
+
+    def __init__(self):
+        Crossovers.fncs = {Crossovers.Type.simple: Crossovers.simple_crossover,
+                           Crossovers.Type.arithmetical: Crossovers.arithmetical_crossover,
+                           Crossovers.Type.geometrical: Crossovers.geometrical_crossover,
+                           Crossovers.Type.linear: Crossovers.linear_crossover,
+                           Crossovers.Type.BLXalpha: Crossovers.blx_crossover}
+
+    @staticmethod
+    def cross(t1, t2, type=Type.arithmetical, alpha=random()):
+        return Crossovers.fncs[type](t1, t2, alpha)
+
+    @staticmethod
+    def simple_crossover(t1, t2):
+        return (t1[0], t2[1]), (t2[0], t1[1])
+
+    @staticmethod
+    def arithmetical_crossover(t1, t2, a):
+        ch1 = (t1[0] * a + t2[0] * (1 - a), t1[1] * a + t2[1] * (1 - a))
+        ch2 = (t2[0] * a + t1[0] * (1 - a), t2[1] * a + t1[1] * (1 - a))
+        return ch1, ch2
+
+    @staticmethod
+    def geometrical_crossover(t1, t2, a):
+        ch1 = (t1[0] ** a * t2[0] ** (1 - a), t1[1] ** a * t2[1] ** (1 - a))
+        ch2 = (t2[0] ** a * t1[0] ** (1 - a), t2[1] ** a * t1[1] ** (1 - a))
+        return ch1, ch2
+
+    @staticmethod
+    def linear_crossover(t1, t2):
+        ch1 = (t1[0] * 0.5 + t2[0] * 0.5, t1[1] * 0.5 + t2[1] * 0.5)
+        ch2 = (t1[0] * 1.5 - t2[0] * 0.5, t1[1] * 1.5 - t2[1] * 0.5)
+        ch3 = (t2[0] * 1.5 - t1[0] * 0.5, t2[1] * 1.5 - t1[1] * 0.5)
+        return ch1, ch2, ch3
+
+    @staticmethod
+    def blx_crossover(t1, t2, alpha):
+        ch1 = (Genetic.blx_gene(t1[0], t2[0], alpha), Genetic.blx_gene(t1[1], t2[1], alpha))
+        return [ch1]
+
+
 class Genetic:
     class SamplingType(IntEnum):
         stochastic = 0
@@ -20,18 +70,11 @@ class Genetic:
         rank = 2
         tournament = 3
 
-    class CrossoverType(IntEnum):
-        simple = 0
-        arithmetical = 1
-        geometrical = 2
-        BLXalpha = 3
-        linear = 4
-
     parser = Parser()
 
     def __init__(self, f_xy, extremum='max', mp=0.02, cp=0.1, size=30,
                  search_field=(-2, -2, 2, 2), sampling=SamplingType.stochastic, elite=0,
-                 crossover=CrossoverType.simple, max_generations=1000, alpha=0.5):
+                 crossover=Crossovers.Type.simple, max_generations=1000, alpha=0.5):
         """
         :param f_xy:
         :param extremum: тип экстремума
@@ -126,49 +169,14 @@ class Genetic:
         length = cmax - cmin
         return uniform(cmin - length * alpha, cmax + length * alpha)
 
-    @staticmethod
-    def simple_crossover(t1, t2):
-        return (t1[0], t2[1]), (t2[0], t1[1])
-
-    @staticmethod
-    def arithmetical_crossover(t1, t2, a):
-        ch1 = (t1[0] * a + t2[0] * (1 - a), t1[1] * a + t2[1] * (1 - a))
-        ch2 = (t2[0] * a + t1[0] * (1 - a), t2[1] * a + t1[1] * (1 - a))
-        return ch1, ch2
-
-    @staticmethod
-    def geometrical_crossover(t1, t2, a):
-        ch1 = (t1[0] ** a * t2[0] ** (1 - a), t1[1] ** a * t2[1] ** (1 - a))
-        ch2 = (t2[0] ** a * t1[0] ** (1 - a), t2[1] ** a * t1[1] ** (1 - a))
-        return ch1, ch2
-
-    @staticmethod
-    def linear_crossover(t1, t2):
-        ch1 = (t1[0] * 0.5 + t2[0] * 0.5, t1[1] * 0.5 + t2[1] * 0.5)
-        ch2 = (t1[0] * 1.5 - t2[0] * 0.5, t1[1] * 1.5 - t2[1] * 0.5)
-        ch3 = (t2[0] * 1.5 - t1[0] * 0.5, t2[1] * 1.5 - t1[1] * 0.5)
-        return ch1, ch2, ch3
-
-    @staticmethod
-    def blx_crossover(t1, t2, alpha):
-        ch1 = (Genetic.blx_gene(t1[0], t2[0], alpha), Genetic.blx_gene(t1[1], t2[1], alpha))
-        return [ch1]
-
     def crossover(self, t1, t2):
         """Cкрещивание двух особей с некоторой вероятностью"""
 
         if random() < self.crossover_p:
             self.crossovers += 1
-            if self.crossover_type == Genetic.CrossoverType.simple:
-                return Genetic.simple_crossover(t1, t2)
-            elif self.crossover_type == Genetic.CrossoverType.arithmetical:
-                return Genetic.arithmetical_crossover(t1, t2, random())
-            elif self.crossover_type == Genetic.CrossoverType.geometrical:
-                return Genetic.geometrical_crossover(t1, t2, random())
-            elif self.crossover_type == Genetic.CrossoverType.linear:
-                return Genetic.linear_crossover(t1, t2)
-            elif self.crossover_type == Genetic.CrossoverType.BLXalpha:
-                return Genetic.blx_crossover(t1, t2, self.alpha)
+            alpha = self.alpha if self.crossover_type == Crossovers.Type.BLXalpha else random()
+            return Crossovers.cross(t1, t2, self.crossover_type, alpha)
+
         return t1, t2
 
     def f(self, x, y):
