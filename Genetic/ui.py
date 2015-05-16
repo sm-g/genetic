@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import wx
-from genetic import Genetic, Crossovers, Sampling
 import sys
 from random import random
+
+import wx
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar
 import matplotlib.pyplot as plt
+
+from crossovers import Crossovers
+
+from genetic import Genetic, Sampling
 
 
 class PlotPanel(wx.Panel):
