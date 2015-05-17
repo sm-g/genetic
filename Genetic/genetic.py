@@ -154,7 +154,7 @@ class Genetic:
         self.search_field = search_field
         self.max_generations = max_generations
         self.sampling = sampling
-        self.elite = elite
+        self.elite_size = elite
         self.crossover_type = crossover
         self.alpha = alpha
 
@@ -326,13 +326,16 @@ class Genetic:
 
         return True
 
-    def select_best(self, population, n):
+    @staticmethod
+    def select_best(fit_f, ext, population, n):
         """Возвращает n лучших особей популяции
         """
         if n <= 0:
             return []
+        if n >= len(population):
+            return population
         return [population[x[0]] for x in
-                Genetic.sorted_normed_fitness(self.fit_population, self.extremum, population)][:n]
+                Genetic.sorted_normed_fitness(fit_f, ext, population)][:n]
 
     @staticmethod
     def convergence(population):
@@ -344,7 +347,7 @@ class Genetic:
         Отбор (селекция). Скрещивание (размножение). Мутация.
         """
         # элита
-        elite = self.select_best(population, self.elite)
+        elite = Genetic.select_best(self.fit_population, self.extremum, population, self.elite_size)
 
         # промежуточная популяция после отбора - те, кто будет размножаться
         population = Sampling.sample(self.sampling, self.fit_population, self.extremum, population)
@@ -359,12 +362,10 @@ class Genetic:
         size = len(population)
 
         # кроссовер
-        for i in range(0, size, 2):
-            if i + 1 != size:
-                t = self.crossover(population[i], population[i + 1])
-                if len(t) > 2:
-                    t = self.select_best(t, 2)
-                new_pop.extend(t)
+        for i in range(0, size - 1, 2):
+            t = Genetic.select_best(self.fit_population, self.extremum,
+                                    self.crossover(population[i], population[i + 1]), 2)
+            new_pop.extend(t)
 
         dx = (self.search_field[2] - self.search_field[0]) / 10
         dy = (self.search_field[3] - self.search_field[1]) / 10
@@ -385,7 +386,7 @@ class Genetic:
 
         return new_pop
 
-    def start(self, show_plot=True, print_rate=True, print_stats=True):
+    def start(self, show_plot=False, print_rate=False, print_stats=False):
         """ Возвращает историю - последовательность популяций
         :rtype : list
         """
@@ -526,7 +527,7 @@ class GeneticTester:
         scores = []
         for p in np.arange(0, 0.02, 0.003):
             g = Genetic(GeneticTester.f, mp=p)
-            best = g.start(show_plot=False)
+            best = g.start(print_rate=True, print_stats=True)
             elites.append(best[0])
             scores.append(best[1])
 
@@ -539,7 +540,7 @@ class GeneticTester:
         scores = []
         g = Genetic(GeneticTester.f)
         for i in range(n):
-            best = g.start(show_plot=False)
+            best = g.start(print_rate=True, print_stats=True)
             elites.append(best[0])
             scores.append(best[1])
 
@@ -556,9 +557,8 @@ if __name__ == '__main__':
     # GeneticTester.many(2)
 
     gen = Genetic('x*x+y*y', extremum='min', crossover=Crossovers.Type.BLXalpha)
-    ghist = gen.start(show_plot=False)
+    ghist = gen.start(print_rate=True, print_stats=True)
     gelite = gen.elites(ghist)
-    # gen.show_plot([gelite])
 
     import doctest
 
