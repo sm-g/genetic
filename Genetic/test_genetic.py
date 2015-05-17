@@ -33,7 +33,18 @@ class TestGenetic(unittest.TestCase):
 
     def test_sorted_normed_fitness2(self):
         res = Genetic.sorted_normed_fitness(lambda pop: [i for i in pop], 'min', [-1, 2, 0])
-        self.assertEqual([(0,0.6), (2,0.4), (1,0.0)], res)
+        self.assertEqual([(0, 0.6), (2, 0.4), (1, 0.0)], res)
+
+    def test_mutate(self):
+        point, mutations = Genetic.mutate((1, 0), 1, 0.5, 0.5)
+        self.assertNotEqual((1, 0), point)
+        self.assertEqual(2, mutations)
+
+    def test_mutate2(self):
+        point, mutations = Genetic.mutate((1, 0), 0, 0.5, 0.5)
+        self.assertEqual((1, 0), point)
+        self.assertEqual(0, mutations)
+
 
 if __name__ == "__main__":
     unittest.main()

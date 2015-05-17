@@ -184,30 +184,33 @@ class Genetic:
         points = [(random() * xsize + xmin, random() * ysize + ymin) for _ in xrange(n)]
         return points
 
-    def mutate(self, t, p, *args):
+    @staticmethod
+    def mutate(t, p, dx, dy):
         """Мутация особи.
-        t - точка
-        p - вероятность мутации
-        *args - dx и dy
         Меняет координаты точки на случайное число в диапазоне [-dc; dc]
+        Возвращает пару (точка, число мутаций)
+
+        :type t: tuple
+        :type p: float
+        :type dx: float
+        :type dy: float
+        :rtype : tuple
+        :param t: точка
+        :param p: вероятность мутации
+        :param dx: максимальное отклонение для x
+        :param dy: максимальное отклонение для y
+
+        >>> Genetic.mutate((1, 0), 0, 0.5, 0.5)
+        ((1, 0), 0)
         """
-        if len(args) > 0:
-            dx = args[0]
-        else:
-            dx = (self.search_field[2] - self.search_field[0]) / 10
-
-        if len(args) > 1:
-            dy = args[1]
-        else:
-            dy = (self.search_field[3] - self.search_field[1]) / 10
-
+        mutations = 0
         if random() < p:
-            self.mutations += 1
+            mutations += 1
             t = (t[0] + uniform(-dx, dx), t[1])
         if random() < p:
-            self.mutations += 1
+            mutations += 1
             t = (t[0], t[1] + uniform(-dy, dy))
-        return t
+        return t, mutations
 
     def crossover(self, t1, t2):
         """Cкрещивание двух особей с некоторой вероятностью"""
@@ -363,9 +366,12 @@ class Genetic:
                     t = self.select_best(t, 2)
                 new_pop.extend(t)
 
+        dx = (self.search_field[2] - self.search_field[0]) / 10
+        dy = (self.search_field[3] - self.search_field[1]) / 10
         # мутация
         for i in range(len(new_pop)):
-            self.mutate(new_pop[i], self.mutation_p)
+            new_pop[i], m = Genetic.mutate(new_pop[i], self.mutation_p, dx, dy)
+            self.mutations += m
 
         # добавляем сохраненную элиту в популяцию
         for e in elite:
