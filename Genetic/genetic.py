@@ -214,7 +214,8 @@ class Genetic:
 
         if random() < self.crossover_p:
             self.crossovers += 1
-            alpha = self.alpha if self.crossover_type == Crossovers.Type.BLXalpha else random()
+            alpha = self.alpha if self.crossover_type == Crossovers.Type.BLXalpha \
+                else random()
             return Crossovers.cross(t1, t2, self.crossover_type, alpha)
 
         return t1, t2
@@ -244,8 +245,7 @@ class Genetic:
 
         fit = Genetic.normalize_fitness(f(population), e)
         numbered_fit = [(i, x) for i, x in enumerate(fit)]
-        numbered_fit.sort(key=lambda t: t[1])
-        numbered_fit.reverse()
+        numbered_fit.sort(key=lambda t: -t[1])
         return numbered_fit
 
     @staticmethod
@@ -275,7 +275,7 @@ class Genetic:
         s = fit_sum - e_mult if extremum == 'max' else \
             e_mult - fit_sum
 
-        if s == 0:
+        if s == 0:  # все особи лучшие
             return [1] * len(fitness)
 
         return [(f - anti_e) / s for f in fitness] if extremum == 'max' \
