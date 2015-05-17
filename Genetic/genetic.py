@@ -250,24 +250,36 @@ class Genetic:
 
     @staticmethod
     def normalize_fitness(fitness, extremum):
-        """Нормирует приспособленность от 0 до 1. Сумма приспособленностей особей популяции = 1.
+        """Нормирует приспособленность от 0 до 1.
+        Сумма приспособленностей особей популяции = 1.
         :type extremum: str
         :type fitness: list
 
+        >>> Genetic.normalize_fitness([1,1,2], 'max')
+        [0.0, 0.0, 1.0]
+        >>> Genetic.normalize_fitness([1,2,5,1], 'max')
+        [0.0, 0.2, 0.8, 0.0]
+        >>> Genetic.normalize_fitness([1,2,4,1], 'min')
+        [0.375, 0.25, 0.0, 0.375]
+        >>> import math
+        >>> math.fsum(Genetic.normalize_fitness([1,2,4,1], 'min'))
+        1.0
         """
 
-        if extremum == 'max':
-            m = min(fitness)
-            s = sum(fitness) - len(fitness) * m
-            if s == 0:
-                return [1] * len(fitness)
-            return [(f - m) / s for f in fitness]
-        else:
-            m = max(fitness)
-            s = len(fitness) * m - sum(fitness)
-            if s == 0:
-                return [1] * len(fitness)
-            return [(m - f) / s for f in fitness]
+        anti_e = min(fitness) if extremum == 'max' else \
+            max(fitness)
+
+        e_mult = len(fitness) * anti_e
+        fit_sum = math.fsum(fitness)
+
+        s = fit_sum - e_mult if extremum == 'max' else \
+            e_mult - fit_sum
+
+        if s == 0:
+            return [1] * len(fitness)
+
+        return [(f - anti_e) / s for f in fitness] if extremum == 'max' \
+            else [(anti_e - f) / s for f in fitness]
 
     @staticmethod
     def print_with_score(population, score):
@@ -316,7 +328,8 @@ class Genetic:
         """
         if n <= 0:
             return []
-        return [population[x[0]] for x in Genetic.sorted_normed_fitness(self.fit_population, self.extremum, population)][:n]
+        return [population[x[0]] for x in
+                Genetic.sorted_normed_fitness(self.fit_population, self.extremum, population)][:n]
 
     @staticmethod
     def convergence(population):
@@ -537,6 +550,10 @@ if __name__ == '__main__':
     # GeneticTester.many(2)
 
     gen = Genetic('x*x+y*y', extremum='min', crossover=Crossovers.Type.BLXalpha)
-    ghist = gen.start()
+    ghist = gen.start(show_plot=False)
     gelite = gen.elites(ghist)
     # gen.show_plot([gelite])
+
+    import doctest
+
+    doctest.testmod()
