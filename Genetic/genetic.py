@@ -17,14 +17,8 @@ from axiacore_parser import Parser
 
 
 class Sampling:
-    fncs = {}
-
     def __init__(self):
-        Sampling.fncs = {
-            Sampling.Type.rank: self.rank_sampling,
-            Sampling.Type.tournament: self.tournament_sampling,
-            Sampling.Type.stochastic: self.stochastic_sampling,
-            Sampling.Type.remainderStochastic: self.remainder_stochastic_sampling}
+        pass
 
     class Type(IntEnum):
         stochastic = 0
@@ -41,7 +35,7 @@ class Sampling:
         :param population:
         :return:
         """
-        return Sampling.fncs[s_type](fit_f, extremum, population)
+        return Sampling.fncs[s_type].__func__(fit_f, extremum, population)
 
     @staticmethod
     def rank_sampling(fit, e, population):
@@ -128,6 +122,11 @@ class Sampling:
 
         return newpop
 
+    fncs = {Type.rank: rank_sampling,
+            Type.tournament: tournament_sampling,
+            Type.stochastic: stochastic_sampling,
+            Type.remainderStochastic: remainder_stochastic_sampling}
+
 
 class Genetic:
     parser = Parser()
@@ -163,12 +162,6 @@ class Genetic:
         self.mutations = 0
         self.func_xy = f_xy.lower()
         self.parsed_f = Genetic.parser.parse(self.func_xy)
-
-        self.fig = plt.figure(0)
-        self.ax = self.fig.add_axes([0, 0, 0.9, 1], projection='3d')
-        self.ax.set_xlabel('X')
-        self.ax.set_ylabel('Y')
-        self.ax.set_zlabel('F(x, y)')
 
         self.same_best_counter = 0
 
@@ -323,7 +316,7 @@ class Genetic:
         """
         if n <= 0:
             return []
-        return [population[x[0]] for x in Genetic.sorted_normed_fitness(self.f, self.extremum, population)][:n]
+        return [population[x[0]] for x in Genetic.sorted_normed_fitness(self.fit_population, self.extremum, population)][:n]
 
     @staticmethod
     def convergence(population):
@@ -338,7 +331,7 @@ class Genetic:
         elite = self.select_best(population, self.elite)
 
         # промежуточная популяция после отбора - те, кто будет размножаться
-        population = Sampling.sample(self.sampling, lambda x: self.fit_population(x), self.extremum, population)
+        population = Sampling.sample(self.sampling, self.fit_population, self.extremum, population)
 
         if Genetic.convergence(population):
             raise Exception('convergence')
@@ -398,11 +391,12 @@ class Genetic:
             except Exception as e:
                 if e.message == 'convergence':
                     print u'вырождение популяции'
+                print e
                 break
 
             history.append(population)
 
-            best_after = Genetic.rate_population(self.f, self.extremum, population, print_rate)
+            best_after = Genetic.rate_population(self.fit_population, self.extremum, population, print_rate)
 
             if print_stats:
                 print u"{:-^30}\nразмер\t{}\n" \
@@ -429,7 +423,7 @@ class Genetic:
 
         for population in history:
             elites.append(
-                Genetic.rate_population(lambda x: self.fit_population(x), self.extremum, population, verbose=False))
+                Genetic.rate_population(self.fit_population, self.extremum, population, verbose=False))
 
         if verbose:
             print '\n\n' + u"{:*^30}".format(u' лучшие особи ')
@@ -461,12 +455,18 @@ class Genetic:
     #
     #     return canvas
 
-    def show_plot(self, history, elites):
+    def show_plot(self, history, elites=None):
         """Показывает популяции из истории.
 
         """
         elites = elites or []
         colors = iter(cm.rainbow(np.linspace(0, 1, len(history))))
+
+        fig = plt.figure(0)
+        ax = fig.add_axes([0, 0, 0.9, 1], projection='3d')
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('F(x, y)')
 
         for i, population in enumerate(history):
             xs = [point[0] for point in population]
@@ -474,12 +474,12 @@ class Genetic:
             zs = self.fit_population(population)
 
             color = next(colors)
-            self.ax.plot(xs, ys, zs, 'o', c=color, label=i, markersize=3, mew=0)
+            ax.plot(xs, ys, zs, 'o', c=color, label=i, markersize=3, mew=0)
 
             # выделяем элиту в каждой популяции
             if len(history) == len(elites):
-                self.ax.plot([elites[i][0]], [elites[i][1]], self.fit_population([elites[i]]), 'x', c=color,
-                             markersize=20)
+                ax.plot([elites[i][0]], [elites[i][1]], self.fit_population([elites[i]]), 'x', c=color,
+                        markersize=20)
 
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), numpoints=1, fontsize=8)
         plt.show()
@@ -499,7 +499,7 @@ class GeneticTester:
         print population
         Genetic.print_with_score(population, g.fit_population(population))
         print 'avg fitness = ' + str(sum(fit) / float(len(fit)))
-        print Sampling.stochastic_sampling(g.f, g.extremum, population)
+        print Sampling.stochastic_sampling(g.fit_population, g.extremum, population)
 
     @staticmethod
     def var_mp():
@@ -530,12 +530,13 @@ class GeneticTester:
 
 if __name__ == '__main__':
     # fxy = raw_input("Enter function of x and y: ")
+    # fxy = 'x*x+y*y'
     # tester = GeneticTester(fxy)
     # GeneticTester.test_stohastic()
     # GeneticTester.var_mp()
     # GeneticTester.many(2)
 
-    gen = Genetic('x*x+y*y', extremum='min')
+    gen = Genetic('x*x+y*y', extremum='min', crossover=Crossovers.Type.BLXalpha)
     ghist = gen.start()
     gelite = gen.elites(ghist)
-    gen.show_plot([gelite])
+    # gen.show_plot([gelite])
