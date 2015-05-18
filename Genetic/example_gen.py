@@ -3,7 +3,7 @@
 from random import random, choice, shuffle, sample, uniform
 import os
 import math
-from genetic import Genetic
+from genetic import Genetic, Crossovers
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -25,10 +25,11 @@ matplotlib.rc('font', **font)
 points = [(0.1, 5), (2, 0.3)]
 
 to_plot = [points,
-           Genetic.simple_crossover(points[0], points[1]),
-           Genetic.arithmetical_crossover(points[0], points[1], 0.3),
-           Genetic.geometrical_crossover(points[0], points[1], 0.3), Genetic.linear_crossover(points[0], points[1]),
-           Genetic.blx_crossover(points[0], points[1], 0.25)]
+           Crossovers.simple_crossover(points[0], points[1]),
+           Crossovers.arithmetical_crossover(points[0], points[1], 0.3),
+           Crossovers.geometrical_crossover(points[0], points[1], 0.3),
+           Crossovers.linear_crossover(points[0], points[1]),
+           Crossovers.blx_crossover(points[0], points[1], 0.25)]
 
 colors = iter(cm.rainbow(np.linspace(0, 1, len(to_plot))))
 
@@ -39,9 +40,8 @@ for i, population in enumerate(to_plot):
 
     color = next(colors)
 
-    if i == 0:
-        label = u'до кроссовера'
-    elif i == 1:
+    label = u'до кроссовера'
+    if i == 1:
         label = u'простой'
     elif i == 2:
         label = u'арифметический'
@@ -52,9 +52,8 @@ for i, population in enumerate(to_plot):
     elif i == 5:
         label = u'смешанный'
 
-    ax.plot(xs, ys, 'o', c=color, label=label, markersize=15)
+ax.plot(xs, ys, 'o', c=color, label=label, markersize=15)
 
 plt.legend(loc=9, ncol=2, numpoints=1, fontsize=20)
 plt.margins(0.05)
 plt.show()
-
