@@ -8,9 +8,8 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar
 import matplotlib.pyplot as plt
 
-from crossovers import Crossovers
-
-from genetic import Genetic, Sampling
+import genetic
+from genetic import Genetic, Sampling, Crossovers
 
 
 class PlotPanel(wx.Panel):
@@ -313,7 +312,7 @@ class GenUI(wx.Frame):
             print u'x = {}\ny = {}'.format(sol[0][0], sol[0][1])
 
             if self.plot_chk.IsChecked():
-                g.show_plot(history, elites)
+                genetic.draw_plot(g.fit_population, history, elites)
 
 
 if __name__ == '__main__':

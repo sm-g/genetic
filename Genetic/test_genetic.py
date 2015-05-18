@@ -1,5 +1,5 @@
 import unittest
-from genetic import Genetic, Sampling
+from genetic import Genetic, Sampling, print_with_score
 from math import fsum
 
 __author__ = 'smg'
@@ -66,7 +66,7 @@ class TestGenetic(unittest.TestCase):
         fit = g.fit_population(population)
         g.start()
         print population
-        Genetic.print_with_score(population, g.fit_population(population))
+        print_with_score(population, g.fit_population(population))
         print 'avg fitness = ' + str(sum(fit) / float(len(fit)))
         print Sampling.stochastic_sampling(g.fit_population, g.extremum, population)
 

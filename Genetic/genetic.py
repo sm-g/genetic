@@ -339,11 +339,6 @@ class Genetic:
             else [(anti_e - f) / s for f in fitness]
 
     @staticmethod
-    def print_with_score(population, score):
-        print '\n'.join(['{}:\t{: .3f} {: .3f}\t{: .3f}'.format(i, t[0][0], t[0][1], t[1]) for i, t in
-                         enumerate(zip(population, score))])
-
-    @staticmethod
     def rate_population(fit, ext, population, verbose=True):
         """Оценка качества популяции.
         Возвращает особь с максимальной приспособленностью.
@@ -353,7 +348,7 @@ class Genetic:
         max_score = max(score)
         i = score.index(max_score)
         if verbose:
-            Genetic.print_with_score(population, score)
+            print_with_score(population, score)
             print u"{:-^30}\n" \
                   u"{}:\t{: .3f} {: .3f}\t{:.3f}\n" \
                   u"F(x,y) = {: .3f}".format(u' лучшая особь ', i,
@@ -485,7 +480,7 @@ class Genetic:
             self.crossovers = self.mutations = 0
 
         if show_plot:
-            self.show_plot(history)
+            draw_plot(self.fit_population, history)
 
         return history
 
@@ -501,7 +496,7 @@ class Genetic:
 
         if verbose:
             print '\n\n' + u"{:*^30}".format(u' лучшие особи ')
-            Genetic.print_with_score(elites, self.fit_population(elites))
+            print_with_score(elites, self.fit_population(elites))
 
         return elites
 
@@ -511,34 +506,43 @@ class Genetic:
         """
         return elites[-1], self.fit_population([elites[-1]])[0]
 
-    def show_plot(self, history, elites=None):
-        """Показывает популяции из истории.
 
-        """
-        elites = elites or []
-        colors = iter(cm.rainbow(np.linspace(0, 1, len(history))))
+def print_with_score(population, score):
+    print '\n'.join(['{}:\t{: .3f} {: .3f}\t{: .3f}'.format(i, t[0][0], t[0][1], t[1]) for i, t in
+                     enumerate(zip(population, score))])
 
-        fig = plt.figure(0)
-        ax = fig.add_axes([0, 0, 0.9, 1], projection='3d')
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('F(x, y)')
 
-        for i, population in enumerate(history):
-            xs = [point[0] for point in population]
-            ys = [point[1] for point in population]
-            zs = self.fit_population(population)
+def draw_plot(fit_f, history, elites=None):
+    """Показать популяции из истории.
 
-            color = next(colors)
-            ax.plot(xs, ys, zs, 'o', c=color, label=i, markersize=3, mew=0)
+    :param fit_f: Функция, возвращающая приспособленность популяции.
+    :param history:
+    :param elites: Элита в каждой популяции.
+    """
+    elites = elites or []
+    colors = iter(cm.rainbow(np.linspace(0, 1, len(history))))
 
-            # выделяем элиту в каждой популяции
-            if len(history) == len(elites):
-                ax.plot([elites[i][0]], [elites[i][1]], self.fit_population([elites[i]]), 'x', c=color,
-                        markersize=20)
+    fig = plt.figure(0)
+    ax = fig.add_axes([0, 0, 0.9, 1], projection='3d')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('F(x, y)')
 
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), numpoints=1, fontsize=8)
-        plt.show()
+    for i, population in enumerate(history):
+        xs = [point[0] for point in population]
+        ys = [point[1] for point in population]
+        zs = fit_f(population)
+
+        color = next(colors)
+        ax.plot(xs, ys, zs, 'o', c=color, label=i, markersize=3, mew=0)
+
+        # выделяем элиту в каждой популяции
+        if len(history) == len(elites):
+            ax.plot([elites[i][0]], [elites[i][1]], fit_f([elites[i]]), 'x', c=color,
+                    markersize=20)
+
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), numpoints=1, fontsize=8)
+    plt.show()
 
 
 class GeneticTester:
@@ -553,7 +557,7 @@ class GeneticTester:
         population = [(0.2, 0.5), (-0.2, 1), (0.2, 0.2), (-1, 0.3), (0.4, 0.8)]
         fit = g.fit_population(population)
         print population
-        Genetic.print_with_score(population, g.fit_population(population))
+        print_with_score(population, g.fit_population(population))
         print 'avg fitness = ' + str(sum(fit) / float(len(fit)))
         print Sampling.stochastic_sampling(g.fit_population, g.extremum, population)
 
@@ -569,7 +573,7 @@ class GeneticTester:
             scores.append(best[1])
 
         print '\n\n' + "{:$^30}".format(' elite ')
-        Genetic.print_with_score(elites, scores)
+        print_with_score(elites, scores)
 
 
 if __name__ == '__main__':
@@ -578,9 +582,9 @@ if __name__ == '__main__':
     # GeneticTester.test_stohastic()
     # GeneticTester.many(5)
 
-    # gen = Genetic('x*x+y*y', extremum='min', crossover=Crossovers.Type.BLXalpha)
-    # ghist = gen.start(print_rate=True, print_stats=True)
-    # gelite = gen.elites(ghist)
+    gen = Genetic('x*x+y*y', extremum='min', crossover=Crossovers.Type.BLXalpha)
+    ghist = gen.start(show_plot=True, print_rate=True, print_stats=True)
+    gelite = gen.elites(ghist)
 
     import doctest
 
