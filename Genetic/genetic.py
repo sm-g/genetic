@@ -457,24 +457,6 @@ class Genetic:
         """
         return elites[-1], self.fit_population([elites[-1]])[0]
 
-    # def draw_plot(self, history):
-    #     fig = plt.figure()
-    #     canvas = FigureCanvas(self, -1, self.figure)
-    #
-    #     ax = fig.add_subplot(111, projection='3d')
-    #
-    #     for population in history:
-    #         xs = [point[0] for point in population]
-    #         ys = [point[1] for point in population]
-    #         zs = self.fitness(population)
-    #         ax.scatter(xs, ys, zs, c=np.arange(len(population)))
-    #
-    #     ax.set_xlabel('X')
-    #     ax.set_ylabel('Y')
-    #     ax.set_zlabel('F(x, y)')
-    #
-    #     return canvas
-
     def show_plot(self, history, elites=None):
         """Показывает популяции из истории.
 
@@ -522,25 +504,13 @@ class GeneticTester:
         print Sampling.stochastic_sampling(g.fit_population, g.extremum, population)
 
     @staticmethod
-    def var_mp():
-        elites = []
-        scores = []
-        for p in np.arange(0, 0.02, 0.003):
-            g = Genetic(GeneticTester.f, mp=p)
-            best = g.start(print_rate=True, print_stats=True)
-            elites.append(best[0])
-            scores.append(best[1])
-
-        print '\n\n' + "{:$^30}".format(' elite ')
-        Genetic.print_with_score(elites, scores)
-
-    @staticmethod
     def many(n):
         elites = []
         scores = []
         g = Genetic(GeneticTester.f)
         for i in range(n):
-            best = g.start(print_rate=True, print_stats=True)
+            hist = g.start(print_rate=False, print_stats=False)
+            best = g.solution(g.elites(hist))
             elites.append(best[0])
             scores.append(best[1])
 
@@ -549,16 +519,14 @@ class GeneticTester:
 
 
 if __name__ == '__main__':
-    # fxy = raw_input("Enter function of x and y: ")
-    # fxy = 'x*x+y*y'
-    # tester = GeneticTester(fxy)
+    fxy = 'x*x+y*y'
+    tester = GeneticTester(fxy)
     # GeneticTester.test_stohastic()
-    # GeneticTester.var_mp()
-    # GeneticTester.many(2)
+    GeneticTester.many(5)
 
-    gen = Genetic('x*x+y*y', extremum='min', crossover=Crossovers.Type.BLXalpha)
-    ghist = gen.start(print_rate=True, print_stats=True)
-    gelite = gen.elites(ghist)
+    # gen = Genetic('x*x+y*y', extremum='min', crossover=Crossovers.Type.BLXalpha)
+    # ghist = gen.start(print_rate=True, print_stats=True)
+    # gelite = gen.elites(ghist)
 
     import doctest
 
